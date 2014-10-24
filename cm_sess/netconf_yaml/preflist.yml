@@ -1,0 +1,18 @@
+PrefListTable:
+  rpc: get-configuration
+  item: policy-options/prefix-list
+  key: name
+  view: PrefListView
+
+PrefListView:
+  fields:
+    name: name
+    entries: _PrefListEntryTable
+
+_PrefListEntryTable:
+  item: prefix-list-item
+  view: _PrefListItemView
+
+_PrefListItemView:
+  fields:
+    prefix: name

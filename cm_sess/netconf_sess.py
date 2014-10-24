@@ -4,10 +4,11 @@ import re
 import logging
 import os
 from os.path import dirname, join
-from lxml import etree
 from jnpr.junos import Device
 from jnpr.junos.utils.config import Config
 from ipaddr import IPv4Network
+
+from cm_sess.netconf_yaml.preflist import *
 
 from base import SessBase
 
@@ -49,27 +50,22 @@ class NetconfSess(SessBase):
 
   def get_snmp_acl(self, **kw):
     """ SNMPアクセスリストを取得
+    >>> for pl in PrefListTable(self.dev).get():
+    ...   if pl.name == 'SNMP-ACCESS':
+    ...     pp.pprint(json.loads(pl.entries.to_json()))
+    ...
+    {   u'10.0.0.1/32': {   u'prefix': u'10.0.0.1/32'},
+        u'172.25.8.0/24': {   u'prefix': u'172.25.8.0/24'},
+        u'172.31.30.0/24': {   u'prefix': u'172.31.30.0/24'},
+        u'192.168.11.0/24': {   u'prefix': u'192.168.11.0/24'}}
 
-    >>> print etree.tostring(e)
-    <prefix-list>
-                <name>SNMP-ACCESS</name>
-                <prefix-list-item>
-                    <name>192.0.2.0/24</name>
-                </prefix-list-item>
-                <prefix-list-item>
-                    <name>198.51.100.0/24</name>
-                </prefix-list-item>
-            </prefix-list>
     """
     set_last_acl = kw.get('set_last_acl', True)
     acl = list()
-    for po_op in self.dev.rpc.get_config(filter_xml=etree.Element('policy-options')).iter():
-      # policy-options の prefix-list までたどる
-      if po_op.tag != 'prefix-list': continue
-      t_in_tree = [ t.strip() for t in po_op.itertext(tag='name') if len(t.strip()) ]
-      if t_in_tree[0] == self.acl_name:
+    for pl in PrefListTable(self.dev).get():
+      if pl.name == self.acl_name:
         # prefix-list name がマッチしたらエントリを取得
-        acl = map(IPv4Network, t_in_tree[1:])
+        acl = map(IPv4Network, pl.entries.keys())
         break
     # 取得できなかった場合はカラのリストを返す
     if set_last_acl: self.last_acl = acl

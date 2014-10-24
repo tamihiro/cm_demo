@@ -1,0 +1,8 @@
+{# template in the set format.
+#}
+{% for acl_name, acl in acl_dict.iteritems() %}
+delete policy-options prefix-list {{ acl_name }}
+{% for n in acl %}
+set policy-options prefix-list {{ acl_name }} {{ n }}
+{% endfor %}
+{% endfor %}

@@ -6,16 +6,18 @@ SNMP、Telnet、NETCONF、REST API等でネットワーク機器に接続して�
 Python2.7で動作確認済みです。
 以下のパッケージに依存しています。
 
-ipaddr
-pysnmp
-pexpect
-ncclient
-lxml 
-junos-eznc
+ - ipaddr
+ - pysnmp
+ - pexpect
+ - ncclient
+ - lxml
+ - junos-eznc
 
+```
 $ python update_snmp_acl.py -h
 usage: update_snmp_acl.py [-h] [-i]
 
 optional arguments:
-  -h, --help         show this help message and exit
-  -i, --interactive  show confirmation prompt (default: False)
+ -h, --help         show this help message and exit
+ -i, --interactive  show confirmation prompt (default: False)
+```

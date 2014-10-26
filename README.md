@@ -15,9 +15,10 @@ Python2.7で動作確認済みです。
 
 ```
 $ python update_snmp_acl.py -h
-usage: update_snmp_acl.py [-h] [-i]
+usage: update_snmp_acl.py [-h] [-i] [-d]
 
 optional arguments:
- -h, --help         show this help message and exit
- -i, --interactive  show confirmation prompt (default: False)
+  -h, --help         show this help message and exit
+  -i, --interactive  show confirmation prompt (default: False)
+  -d, --dump-telnet  copy telnet screen to a file (default: False)
 ```

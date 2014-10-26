@@ -18,7 +18,7 @@ template_path = join(dirname(__file__), './netconf_templates/preflist_tmpl.set')
 class NetconfSess(SessBase):
   """netconfセッション用クラス
   """
-  def __init__(self, server, user_login, pass_login, logger_name, netconf_port=830, rpc_timeout=10):
+  def __init__(self, server, user_login, pass_login, logger_name, netconf_port=830, rpc_timeout=20):
     self.server = server
     self.user_login = user_login
     self.pass_login = pass_login

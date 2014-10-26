@@ -122,7 +122,7 @@ class TelnetSess(SessBase):
     return acl
 
   def _gen_snmp_acl_brocade(self, config_mode):
-    cmd = "show access-list name SNMP-ACCESS | inc ^_+sequence"
+    cmd = "show access-list name %s | inc ^_+sequence" % (self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.priv_prompt)
     for l in self.child.before.split(self.linebreak):
@@ -135,7 +135,7 @@ class TelnetSess(SessBase):
 
   def _gen_snmp_acl_juniper(self, config_mode):
     #if config_mode:
-    cmd = "show%s policy-options prefix-list SNMP-ACCESS | no-more" % ("" if config_mode else " configuration")
+    cmd = "show%s policy-options prefix-list %s | no-more" % ("" if config_mode else " configuration", self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.unpriv_prompt)
     for l in self.child.before.split(self.linebreak):
@@ -147,7 +147,7 @@ class TelnetSess(SessBase):
       yield m
 
   def _gen_snmp_acl_cisco(self, config_mode):
-    cmd = "%s show ip access-lists SNMP-ACCESS | inc [0-9]+_permit_" % (config_mode and "do" or "")
+    cmd = "%s show ip access-lists %s | inc [0-9]+_permit_" % (config_mode and "do" or "", self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.priv_prompt)
     for l in self.child.before.split(self.linebreak):

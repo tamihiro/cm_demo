@@ -6,7 +6,7 @@ import urllib, urllib2
 from contextlib import closing
 import json
 import traceback
-from ipaddr import IPv4Network
+from ipaddr import IPv4Network, IPv4Address
 
 from base import SessBase
 
@@ -63,6 +63,25 @@ class EapiHttpSess(SessBase):
   def get_snmp_acl(self, **kw):
     """ SNMPアクセスリストを取得
     """
+    def get_acl_entry(e):
+      """
+      レスポンスに含まれる情報からACLエントリをとりだす
+      u'sequence': [   {   u'action': u'permit',
+                           u'destination': {   u'ip': u'0.0.0.0',
+                                               u'mask': 0},
+                           u'source': {   u'ip': u'192.0.2.0',
+                                          u'mask': 4294967040}},
+      """
+      if e.get('action') == 'permit' and \
+         e.get('destination') and isinstance(e['destination'], dict) and \
+         e.get('destination').get('ip') == '0.0.0.0' and e.get('destination').get('mask') == 0 and \
+         e.get('source') and isinstance(e['source'], dict):
+        try:
+          return IPv4Network("%s/%s" % (e['source']['ip'], str(IPv4Address(e['source']['mask'])), ))
+        except:
+          pass
+      raise RuntimeError("%s: ACLエントリを判別できません.: %s" % (self.server.ipaddr, e, ))
+
     set_last_acl = kw.get('set_last_acl', True)
     acl = list()
     cmds = ['enable', 'show ip access-lists ' + self.acl_name, ]
@@ -77,14 +96,9 @@ class EapiHttpSess(SessBase):
       acls = filter(lambda a: a['name'] == self.acl_name and a['standard'] is True, data['result'][1]['aclList'])
       if len(acls) == 1:
         for e in acls[0]['sequence']:
-          m = re.match(r'^\s*permit\s+(?:host\s+)?([\d.]+)(?:/([\d.]+))?\s*$', e['text'])
-          if not m: 
-            self.write_log(self.logger, 'warn', "%s: ACLエントリを判別できません.: %s" % (self.server.ipaddr, e, ))
-            continue
-          if m.group(2):
-            acl.append(IPv4Network("%s/%s" % m.groups()))
-          else:
-            acl.append(IPv4Network("%s" % m.group(1)))
+          s = get_acl_entry(e)
+          if not s: continue
+          acl.append(s)
         acl.sort()
       return acl      
 

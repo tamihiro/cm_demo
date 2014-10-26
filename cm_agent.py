@@ -14,22 +14,25 @@ class Agent:
     self.model = self.__class__.__name__.lower()
 
 class Arista(Agent):
-  def get_sess(self, pass_login, pass_enable, logger_name):
+  def get_sess(self, pass_login, pass_enable, logger_name, **kw):
     return EapiHttpSess(self, 'admin', pass_login, logger_name, )
 
 class Brocade(Agent):
-  def get_sess(self, pass_login, pass_enable, logger_name):
+  def get_sess(self, pass_login, pass_enable, logger_name, **kw):
+    screen_dump  = kw.get('dump_telnet', False)  and splitext(__file__)[0]+"_telnet_dump" or None
     return TelnetSess(self, pass_login, pass_enable, logger_name, 
-                      screen_dump=splitext(__file__)[0]+"_telnet_dump", )
+                      screen_dump=screen_dump, )
 
 class Cisco(Agent):
-  def get_sess(self, pass_login, pass_enable, logger_name):
+  def get_sess(self, pass_login, pass_enable, logger_name, **kw):
+    screen_dump  = kw.get('dump_telnet', False)  and splitext(__file__)[0]+"_telnet_dump" or None
     return TelnetSess(self, pass_login, pass_enable, logger_name, 
-                      screen_dump=splitext(__file__)[0]+"_telnet_dump", )
+                      screen_dump=screen_dump, )
 
 class Juniper(Agent):
-  def get_sess(self, pass_login, pass_enable, logger_name):
+  def get_sess(self, pass_login, pass_enable, logger_name, **kw):
+    #screen_dump  = kw.get('dump_telnet', False)  and splitext(__file__)[0]+"_telnet_dump" or None
     #return TelnetSess(self, pass_login, None, logger_name, user_login='admin', 
-    #                  screen_dump=splitext(__file__)[0]+"_telnet_dump", )
+    #                  screen_dump=screen_dump, )
     return NetconfSess(self, 'admin', pass_login, logger_name, )
 

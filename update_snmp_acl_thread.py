@@ -12,6 +12,15 @@
 
 - threadingモジュールを使った並列処理のデモ
 
+ $ ./update_snmp_acl_thread.py -h
+ usage: update_snmp_acl_thread.py [-h] [-d]
+ 
+ optional arguments:
+   -h, --help         show this help message and exit
+   -d, --dump-telnet  copy telnet screen to a file (default: False)
+
+- オプション '-d', '--dump-telnet': telnetセッションのスクリーンをファイルに出力
+  (パスワードが平文で出力されるので注意)
 """
 
 # 設定変更対象機器のIPアドレス
@@ -26,6 +35,7 @@ import re
 import hashlib
 import logging
 import getpass
+import argparse
 import traceback
 import threading
 import Queue
@@ -95,23 +105,24 @@ class RunSessThread(threading.Thread):
   """ Threadクラスのサブクラス
   run()メソッドで機器IPアドレスをキューから取得して設定変更
   """
-  def __init__(self, queue, l, e, a):
+  def __init__(self, queue, l, e, a, d):
     threading.Thread.__init__(self)
     self.queue = queue
     self.l = l
     self.e = e
     self.a = a
+    self.d = d
 
   def run(self):
     while True:
       # キューから取得
       ipaddr = self.queue.get()
-      run_sess(ipaddr, logger, self.l, self.e, self.a)
+      run_sess(ipaddr, logger, self.l, self.e, self.a, self.d)
       # キューに完了通知
       self.queue.task_done()
 
 
-def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl):
+def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, dump_telnet):
   """管理対象機器のipaddrにアクセスして設定を更新する
   """
   try:
@@ -122,7 +133,7 @@ def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl):
     logger.error("%s: %s" % (e.__class__.__name__, str(e)))
     return
   # 機種ごとに対応するAPIを使ってアクセス
-  sess = agent.get_sess(pass_login, pass_enable, logger.name)
+  sess = agent.get_sess(pass_login, pass_enable, logger.name, dump_telnet=dump_telnet, )
   try:
     # セッション開始
     sess.open()
@@ -155,9 +166,12 @@ def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl):
 
 
 def main():
-  if len(sys.argv) > 1:
-    print >>sys.stderr, "usage: %s" % sys.argv[0]
-    sys.exit()
+  # 確認プロンプトを表示するためのオプション指定を処理
+  parser = argparse.ArgumentParser()
+  parser.add_argument('-d', '--dump-telnet', action='store_true', dest='dump_telnet',
+                      help='copy telnet screen to a file (default: False)' )
+
+  dump_telnet = vars(parser.parse_args())['dump_telnet']
 
   try:
     # パスワード情報を取得
@@ -176,7 +190,7 @@ def main():
   queue = Queue.Queue()
   for i in range(thread_num):
     # スレッド生成
-    t = RunSessThread(queue, pass_login, pass_enable, new_acl)
+    t = RunSessThread(queue, pass_login, pass_enable, new_acl, dump_telnet)
     t.setDaemon(True)
     t.start()
 

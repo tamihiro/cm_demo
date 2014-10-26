@@ -11,17 +11,21 @@
 -- arista: eapi
 
  $ python update_snmp_acl.py -h
- usage: update_snmp_acl.py [-h] [-i]
+ usage: update_snmp_acl.py [-h] [-i] [-d]
 
  optional arguments:
    -h, --help         show this help message and exit
    -i, --interactive  show confirmation prompt (default: False)
+   -d, --dump-telnet  copy telnet screen to a file (default: False)
 
 - オプション '-i', '--interactive': 設定変更と保存前に確認プロンプトを表示
-- 保存しなかった場合:
+- 設定を保存しなかった場合:
 -- telnet: いったんCLIに切り替える (エスケープで処理に戻る)
 -- netconf: ロールバック
 -- eapi: ロールバック (変更前のACLを再投入)
+
+- オプション '-d', '--dump-telnet': telnetセッションのスクリーンをファイルに出力
+  (パスワードが平文で出力されるので注意)
 
 """
 
@@ -95,7 +99,7 @@ def get_agent(ipaddr):
     raise ValueError("%s: 機種を特定できませんでした." % (ipaddr))
 
 
-def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt):
+def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt, dump_telnet):
   """管理対象機器のipaddrにアクセスして設定を更新する
   """
   try:
@@ -106,7 +110,7 @@ def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt):
     logger.error("%s: %s" % (e.__class__.__name__, str(e)))
     return
   # 機種ごとに対応するAPIを使ってアクセス
-  sess = agent.get_sess(pass_login, pass_enable, logger.name)
+  sess = agent.get_sess(pass_login, pass_enable, logger.name, dump_telnet=dump_telnet, )
   try:
     # セッション開始
     sess.open()
@@ -143,7 +147,11 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-i', '--interactive', action='store_true', dest='prompt',
                       help='show confirmation prompt (default: False)' )
+  parser.add_argument('-d', '--dump-telnet', action='store_true', dest='dump_telnet',
+                      help='copy telnet screen to a file (default: False)' )
+
   prompt = vars(parser.parse_args())['prompt']
+  dump_telnet = vars(parser.parse_args())['dump_telnet']
 
   try:
     # パスワード情報を取得
@@ -154,7 +162,7 @@ def main():
     logger.info("開始します.")
     for ipaddr in agent_ipaddrs:
       # 機器ごとに接続して設定を変更
-      run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt)
+      run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt, dump_telnet)
 
   except KeyboardInterrupt:
     print ""

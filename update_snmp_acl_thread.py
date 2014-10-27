@@ -44,10 +44,6 @@ from ipaddr import IPv4Network
 from pysnmp_sess_v2c import *
 import cm_agent
 
-# パスワードのハッシュ
-pass_login_hash = '28c07f568eab870144ba7c57777460a9'
-pass_enable_hash = '5c2fde453c5aac10a2d78dafe08e5b54'
-
 # ロギング設定
 logger_name =basename(sys.argv[0])[:-3]
 logger = logging.getLogger(logger_name)

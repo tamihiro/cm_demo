@@ -30,7 +30,7 @@
 """
 
 # 設定変更対象機器のIPアドレス
-agent_ipaddrs = ('192.168.11.207', '192.168.11.101', '192.168.11.102', '192.168.11.106', )
+agent_ipaddrs = ('192.168.11.101', '192.168.11.207', '192.168.11.102', '192.168.11.106', )
 
 # SNMPアクセスを許可するネットワーク
 snmp_mgr_networks = ('172.25.8.0/24', '172.31.30.0/24', '192.168.11.0/24', '10.0.0.1/32', )
@@ -90,10 +90,11 @@ def get_passwords():
 
 
 def get_agent(ipaddr):
-  """取得するsysDescrの情報に対応する機器のオブジェクトを返す (arista|brocade|cisco|juniper)
+  """ipaddrからSNMPで取得するsysDescrを使って機種を判別
   """
   m = re.search('(arista|brocade|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
   if m:
+    # Arista、Brocade、Cisco、Juniper いずれかのオブジェクトを返す
     return getattr(cm_agent, m.group(1).lower().title())(ipaddr)
   else:
     raise ValueError("%s: 機種を特定できませんでした." % (ipaddr))

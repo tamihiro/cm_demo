@@ -88,10 +88,11 @@ def get_passwords():
 
 
 def get_agent(ipaddr):
-  """取得するsysDescrの情報に対応する機器のオブジェクトを返す (arista|brocade|cisco|juniper)
+  """ipaddrからSNMPで取得するsysDescrを使って機種を判別
   """
   m = re.search('(arista|brocade|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
   if m:
+    # Arista、Brocade、Cisco、Juniper いずれかのオブジェクトを返す
     return getattr(cm_agent, m.group(1).lower().title())(ipaddr)
   else:
     raise ValueError("%s: 機種を特定できませんでした." % (ipaddr))

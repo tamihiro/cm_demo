@@ -4,13 +4,11 @@ Internet Week 2014 で担当する運用自動化に関するセッションの�
 SNMP、Telnet、NETCONF、REST API等でネットワーク機器に接続して、SNMPアクセスリストを変更、保存する一連の処理を、Pythonで実装したスクリプトです。
 
 Python2.7で動作確認済みです。
-以下のパッケージに依存しています。
+以下のパッケージをpip installする必要があります(依存パッケージもインストールされます)。
 
  - ipaddr
  - pysnmp
  - pexpect
- - ncclient
- - lxml
  - junos-eznc
 
 ```

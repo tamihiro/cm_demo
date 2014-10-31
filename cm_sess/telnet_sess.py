@@ -23,6 +23,7 @@ class TelnetSess(SessBase):
     self.telnet_timeout = telnet_timeout
     self.logfile = screen_dump
     self.need_priv = False
+    self.deact_pager = False
     self.pass_prompt = ".*Password:"
     self.acl_name = 'SNMP-ACCESS'
     self.closed = True
@@ -30,18 +31,17 @@ class TelnetSess(SessBase):
     # 機種依存の設定
     assert self.device.model in ('juniper', 'brocade', 'cisco', )
     if self.device.model == "juniper":
-      self.unpriv_prompt = "%s@\w+>" % (self.user_login, )
-      self.config_prompt = "%s@\w+#" % (self.user_login, )
-      self.config_acl_cmd = "set policy-options prefix-list " + self.acl_name
+      self.unpriv_prompt = "\r\n%s@[-\w]+>" % (self.user_login, )
+      self.config_prompt = "\r\n%s@[-\w]+#" % (self.user_login, )
       self.add_acl_cmd = lambda n: "set policy-options prefix-list %s %s" % (self.acl_name, n.with_prefixlen, )
       self.del_acl_cmd = lambda n: "delete policy-options prefix-list %s %s" % (self.acl_name, n.with_prefixlen, )
       self.linebreak = "\n"
     if self.device.model == "brocade":
       self.need_priv = True
       self.deact_pager = True
-      self.unpriv_prompt = "telnet@\w+>"
-      self.priv_prompt = "telnet@\w+#"
-      self.config_prompt = "telnet@\w+\(config.*\)#"
+      self.unpriv_prompt = "\r\ntelnet@[-\w]+>"
+      self.priv_prompt = "\r\ntelnet@[-\w]+#"
+      self.config_prompt = "\r\ntelnet@[-\w]+\(config.*\)#"
       self.config_acl_cmd = "ip access-list standard " + self.acl_name
       self.add_acl_cmd = lambda n: "permit " + n.with_prefixlen
       self.del_acl_cmd = lambda n: "no " + self.add_acl_cmd(n)
@@ -49,9 +49,9 @@ class TelnetSess(SessBase):
     if self.device.model == "cisco":
       self.need_priv = True
       self.deact_pager = True
-      self.unpriv_prompt = "\w+>"
-      self.priv_prompt = "\w+#"
-      self.config_prompt = "\w+\(config.*\)#"
+      self.unpriv_prompt = "\r\n[-\w]+>"
+      self.priv_prompt = "\r\n[-\w]+#"
+      self.config_prompt = "\r\n[-\w]+\(config.*\)#"
       self.config_acl_cmd = "ip access-list standard " + self.acl_name
       self.add_acl_cmd = lambda n: "permit " + n.with_hostmask.replace('/', ' ')
       self.del_acl_cmd = lambda n: "no " + self.add_acl_cmd(n)
@@ -125,8 +125,8 @@ class TelnetSess(SessBase):
     cmd = "show access-list name %s | inc ^_+sequence" % (self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.priv_prompt)
-    for l in self.child.before.split(self.linebreak):
-      if l.strip() == cmd.strip() or len(l) == 0: continue
+    for l in self.child.before.split('\r\n')[1:]:
+      if len(l.strip()) == 0: continue
       m = re.match(r"^\s*sequence\s+\d+\s+permit\s+(?:host\s+)?([\d.]+)(?:\s+([\d.]+))?\s*$", l)
       if not m:
         self.write_log(self.logger, 'warn', "%s: ACLエントリを判別できません.: %s" % (self.device.ipaddr, l, ))
@@ -134,15 +134,14 @@ class TelnetSess(SessBase):
       yield m
 
   def _gen_snmp_acl_juniper(self, config_mode):
-    #if config_mode:
     cmd = "show%s policy-options prefix-list %s | no-more" % ("" if config_mode else " configuration", self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.unpriv_prompt)
-    for l in self.child.before.split(self.linebreak):
-      if l.strip() == cmd.strip() or len(l) == 0: continue
+    for l in self.child.before.split('\r\n')[1:]:
+      if l.strip() in (cmd.strip(), '[edit]') or len(l) == 0: continue
       m = re.match(r"^\s*([\d.]+)/(\d+);\s*$", l)
       if not m:
-        self.write_log(self.logger, 'wran', "%s: ACLエントリを判別できません.: %s" % (self.device.ipaddr, l, ))
+        self.write_log(self.logger, 'warn', "%s: ACLエントリを判別できません.: %s" % (self.device.ipaddr, l, ))
         continue
       yield m
 
@@ -150,8 +149,8 @@ class TelnetSess(SessBase):
     cmd = "%s show ip access-lists %s | inc [0-9]+_permit_" % (config_mode and "do" or "", self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.priv_prompt)
-    for l in self.child.before.split(self.linebreak):
-      if l.strip() == cmd.strip() or len(l) == 0: continue
+    for l in self.child.before.split('\r\n')[1:]:
+      if len(l.strip()) == 0: continue
       m = re.match(r"^\s*\d+\s+permit\s+([\d.]+)(?:,\s+wildcard\s+bits\s+([\d.]+))?\b", l)
       if not m:
         self.write_log(self.logger, 'warn', "%s: %s: ACLエントリを判別できません.: %s" % (self.device.ipaddr, l, ))

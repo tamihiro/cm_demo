@@ -31,17 +31,17 @@ class TelnetSess(SessBase):
     # 機種依存の設定
     assert self.device.model in ('juniper', 'brocade', 'cisco', )
     if self.device.model == "juniper":
-      self.unpriv_prompt = "\r\n%s@[-\w]+>" % (self.user_login, )
-      self.config_prompt = "\r\n%s@[-\w]+#" % (self.user_login, )
+      self.unpriv_prompt = "\r\n%s@[-\w]+>\s*$" % (self.user_login, )
+      self.config_prompt = "\r\n%s@[-\w]+#\s*$" % (self.user_login, )
       self.add_acl_cmd = lambda n: "set policy-options prefix-list %s %s" % (self.acl_name, n.with_prefixlen, )
       self.del_acl_cmd = lambda n: "delete policy-options prefix-list %s %s" % (self.acl_name, n.with_prefixlen, )
       self.linebreak = "\n"
     if self.device.model == "brocade":
       self.need_priv = True
       self.deact_pager = True
-      self.unpriv_prompt = "\r\ntelnet@[-\w]+>"
-      self.priv_prompt = "\r\ntelnet@[-\w]+#"
-      self.config_prompt = "\r\ntelnet@[-\w]+\(config.*\)#"
+      self.unpriv_prompt = "\r\ntelnet@[-\w]+>\s*$"
+      self.priv_prompt = "\r\ntelnet@[-\w]+#\s*$"
+      self.config_prompt = "\r\ntelnet@[-\w]+\(config.*\)#\s*$"
       self.config_acl_cmd = "ip access-list standard " + self.acl_name
       self.add_acl_cmd = lambda n: "permit " + n.with_prefixlen
       self.del_acl_cmd = lambda n: "no " + self.add_acl_cmd(n)
@@ -49,9 +49,9 @@ class TelnetSess(SessBase):
     if self.device.model == "cisco":
       self.need_priv = True
       self.deact_pager = True
-      self.unpriv_prompt = "\r\n[-\w]+>"
-      self.priv_prompt = "\r\n[-\w]+#"
-      self.config_prompt = "\r\n[-\w]+\(config.*\)#"
+      self.unpriv_prompt = "\r\n[-\w]+>\s*$"
+      self.priv_prompt = "\r\n[-\w]+#\s*$"
+      self.config_prompt = "\r\n[-\w]+\(config.*\)#\s*$"
       self.config_acl_cmd = "ip access-list standard " + self.acl_name
       self.add_acl_cmd = lambda n: "permit " + n.with_hostmask.replace('/', ' ')
       self.del_acl_cmd = lambda n: "no " + self.add_acl_cmd(n)

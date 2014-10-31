@@ -23,6 +23,7 @@ class EapiHttpSess(SessBase):
     self.http_port = http_port
     self.rpc_timeout = rpc_timeout
     self.req_id = 0
+    self.closed = True
     self.acl_name = 'SNMP-ACCESS'
     self.last_acl = list()
 
@@ -59,6 +60,7 @@ class EapiHttpSess(SessBase):
     opener = urllib2.build_opener(handler)
     urllib2.install_opener(opener)
     self.write_log(self.logger, 'info', "%s (%s): 接続します." % (self.server.ipaddr, self.server.model, ))
+    self.closed = False
 
   def get_snmp_acl(self, **kw):
     """ SNMPアクセスリストを取得
@@ -131,9 +133,7 @@ class EapiHttpSess(SessBase):
       if len(data['result']) != len(cmds) or filter(len, data['result']):
         # 正常に更新されている場合は、コマンドリスト内のコマンドと同数の空の辞書になっている
         self.write_log(self.logger, 'debug', data['result'])
-        self.write_log(self.logger, 'error', "%s: ACLの更新リクエストを実行できませんでした." % (self.server.ipaddr, ))
-        self.close()
-        return False
+        raise RuntimeError("%s: ACLの更新リクエストを実行できませんでした." % (self.server.ipaddr, ))
       
       # 更新後のACLを取得して返す
       return self.get_snmp_acl(set_last_acl=False)
@@ -160,12 +160,13 @@ class EapiHttpSess(SessBase):
 
     # write memory をリクエスト
     with closing(urllib2.urlopen(self.get_api_req(['enable', 'write memory',]), timeout=self.rpc_timeout)) as res:
-      self.check_http_error(res, "コンフィグ保存リクエストでHTTPエラーが発生しました.しました.")
+      self.check_http_error(res, "コンフィグ保存リクエストでHTTPエラーが発生しました.")
       self.write_log(self.logger, 'debug', "%s: コンフィグ保存しました." % (self.server.ipaddr, ))
 
   def close(self):
     """ セッション終了
     """
+    self.closed = True
     self.write_log(self.logger, 'debug', "%s: セッションを閉じました." % (self.server.ipaddr, ))
 
 

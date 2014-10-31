@@ -25,7 +25,7 @@ class NetconfSess(SessBase):
     self.logger = logging.getLogger(logger_name)
     self.netconf_port = netconf_port
     self.rpc_timeout = rpc_timeout
-    self.closed = False
+    self.closed = True
     self.acl_name = 'SNMP-ACCESS'
     self.last_acl = list()
 

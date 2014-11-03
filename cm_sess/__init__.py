@@ -1,3 +1,3 @@
-__all__ = ['eapi_sess', 'netconf_sess', 'telnet_sess', ]
+__all__ = ['eapi_sess', 'netconf_juniper_sess', 'netconf_vdx_sess', 'telnet_sess', ]
 
 

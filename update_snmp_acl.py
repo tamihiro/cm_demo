@@ -6,8 +6,8 @@
 - 対象機器のSNMPアクセスリストを更新します
 
 - 機器ごとのsysDescrを取得してから機種に対応するAPIで接続
--- cisco, brocade: telnet 
--- juniper: netconf
+-- cisco, brocade(ni): telnet 
+-- juniper, brocade(vdx): netconf
 -- arista: eapi
 
  $ python update_snmp_acl.py -h
@@ -21,8 +21,8 @@
 - オプション '-i', '--interactive': 設定変更と保存前に確認プロンプトを表示
 - 設定を保存しなかった場合:
 -- telnet: いったんCLIに切り替える (エスケープで処理に戻る)
--- netconf: ロールバック
--- eapi: ロールバック (変更前のACLを再投入)
+-- netconf(juniper): ロールバック
+-- eapi, netconf(vdx): ロールバック (変更前のACLを再投入)
 
 - オプション '-d', '--dump-telnet': telnetセッションのスクリーンをファイルに出力
   (パスワードが平文で出力されるので注意)
@@ -30,7 +30,7 @@
 """
 
 # 設定変更対象機器のIPアドレス
-agent_ipaddrs = ('192.168.11.101', '192.168.11.207', '192.168.11.102', '192.168.11.106', )
+agent_ipaddrs = ('192.168.11.101', '192.168.11.209', '192.168.11.207', '192.168.11.102', '192.168.11.106', )
 
 # SNMPアクセスを許可するネットワーク
 snmp_mgr_networks = ('172.25.8.0/24', '172.31.30.0/24', '192.168.11.0/24', '10.0.0.1/32', )
@@ -64,13 +64,13 @@ clh.setFormatter(logging.Formatter('%(message)s'))
 logger.addHandler(clh)
 
 # パスワードのハッシュ: 標準入力から取得する文字列のハッシュと比較する
-pass_login_hash = '28c07f568eab870144ba7c57777460a9'
-pass_enable_hash = '5c2fde453c5aac10a2d78dafe08e5b54'
+pass_login_hash = 'bcc45276a1820fb16af9d8f3f2a5659b'
+pass_enable_hash = 'f3c777d6a93d6a22f8e3b41e67647d09'
 
 def get_passwords():
   """標準入力から取得するパスワードをチェック
   """
-  #return 'iw2014', 'IW2014'
+  #return 'iw2014s4', 'IW2014S4'
   def check_password(prompt, hash):
     pass_plain = getpass.getpass(prompt=prompt).strip()
     m = hashlib.md5()
@@ -92,10 +92,10 @@ def get_passwords():
 def get_agent(ipaddr):
   """ipaddrからSNMPで取得するsysDescrを使って機種を判別
   """
-  m = re.search('(arista|brocade|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
+  m = re.search('(arista|brocade\s+(netiron|vdx)|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
   if m:
-    # Arista、Brocade、Cisco、Juniper いずれかのオブジェクトを返す
-    return getattr(cm_agent, m.group(1).lower().title())(ipaddr)
+    # Arista、BrocadeNetiron、BrocadeVdx、Cisco、Juniper いずれかのオブジェクトを返す
+    return getattr(cm_agent, ''.join(m.group(1).lower().title().split()))(ipaddr)
   else:
     raise ValueError("%s: 機種を特定できませんでした." % (ipaddr))
 
@@ -132,7 +132,7 @@ def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt, dump_teln
       else:
         logger.info("%s: 変更後のACL: %s" % (ipaddr, ", ".join([n.with_prefixlen for n in updated_acl])))
         # 更新された設定を保存
-        sess.save_exit_config(prompt=prompt)
+        sess.save_exit_config(prompt=prompt, acl_diff_dict=acl_diff_dict, )
 
     # 新しいACLと一致していた場合
     else:

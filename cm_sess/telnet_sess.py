@@ -29,14 +29,14 @@ class TelnetSess(SessBase):
     self.closed = True
 
     # 機種依存の設定
-    assert self.device.model in ('juniper', 'brocade', 'cisco', )
+    assert self.device.model in ('juniper', 'brocade_netiron', 'cisco', )
     if self.device.model == "juniper":
       self.unpriv_prompt = "\r\n%s@[-\w]+>\s*$" % (self.user_login, )
       self.config_prompt = "\r\n%s@[-\w]+#\s*$" % (self.user_login, )
       self.add_acl_cmd = lambda n: "set policy-options prefix-list %s %s" % (self.acl_name, n.with_prefixlen, )
       self.del_acl_cmd = lambda n: "delete policy-options prefix-list %s %s" % (self.acl_name, n.with_prefixlen, )
       self.linebreak = "\n"
-    if self.device.model == "brocade":
+    if self.device.model == "brocade_netiron":
       self.need_priv = True
       self.deact_pager = True
       self.unpriv_prompt = "\r\ntelnet@[-\w]+>\s*$"
@@ -99,12 +99,12 @@ class TelnetSess(SessBase):
     self.sendline("configure")
     self.child.expect(self.config_prompt)
 
-  def _start_config_brocade(self):
+  def _start_config_brocade_netiron(self):
     self.sendline("configure t")
     self.child.expect(self.config_prompt)
 
   def _start_config_cisco(self):
-    return self._start_config_brocade()
+    return self._start_config_brocade_netiron()
 
   def get_snmp_acl(self, **kw):
     """ SNMPアクセスリストを取得
@@ -121,7 +121,7 @@ class TelnetSess(SessBase):
     acl.sort()
     return acl
 
-  def _gen_snmp_acl_brocade(self, config_mode):
+  def _gen_snmp_acl_brocade_netiron(self, config_mode):
     cmd = "show access-list name %s | inc ^_+sequence" % (self.acl_name, )
     self.sendline(cmd)
     self.child.expect(config_mode and self.config_prompt or self.priv_prompt)
@@ -206,7 +206,7 @@ class TelnetSess(SessBase):
     self.sendline("commit and-quit")
     self.child.expect(self.unpriv_prompt)
 
-  def _save_exit_config_brocade(self):
+  def _save_exit_config_brocade_netiron(self):
     self.sendline("write mem")
     i = self.child.expect([self.config_prompt, self.priv_prompt])  
     if i == 0:

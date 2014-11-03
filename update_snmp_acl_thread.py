@@ -6,8 +6,8 @@
 - 対象機器のSNMPアクセスリストを更新します
 
 - 機器ごとのsysDescrを取得してから機種に対応するAPIで接続
--- cisco, brocade: telnet 
--- juniprt: netconf
+-- cisco, brocade(ni): telnet 
+-- juniper, brocade(vdx): netconf
 -- arista: eapi
 
 - threadingモジュールを使った並列処理のデモ
@@ -24,7 +24,7 @@
 """
 
 # 設定変更対象機器のIPアドレス
-agent_ipaddrs = ('192.168.11.207', '192.168.11.101', '192.168.11.102', '192.168.11.106', )
+agent_ipaddrs = ('192.168.11.101', '192.168.11.209', '192.168.11.207', '192.168.11.102', '192.168.11.106', )
 
 # SNMPアクセスを許可するネットワーク
 snmp_mgr_networks = ('172.25.8.0/24', '172.31.30.0/24', '192.168.11.0/24', '10.0.0.2/32', )
@@ -60,11 +60,11 @@ clh.setFormatter(logging.Formatter('%(message)s'))
 logger.addHandler(clh)
 
 # パスワードのハッシュ: 標準入力から取得する文字列のハッシュと比較する
-pass_login_hash = '28c07f568eab870144ba7c57777460a9'
-pass_enable_hash = '5c2fde453c5aac10a2d78dafe08e5b54'
+pass_login_hash = 'bcc45276a1820fb16af9d8f3f2a5659b'
+pass_enable_hash = 'f3c777d6a93d6a22f8e3b41e67647d09'
 
 # スレッド数
-thread_num = 4
+thread_num = 5
 
 def get_passwords():
   """標準入力から取得するパスワードをチェック
@@ -90,10 +90,10 @@ def get_passwords():
 def get_agent(ipaddr):
   """ipaddrからSNMPで取得するsysDescrを使って機種を判別
   """
-  m = re.search('(arista|brocade|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
+  m = re.search('(arista|brocade\s+(netiron|vdx)|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
   if m:
-    # Arista、Brocade、Cisco、Juniper いずれかのオブジェクトを返す
-    return getattr(cm_agent, m.group(1).lower().title())(ipaddr)
+    # Arista、BrocadeNetiron、BrocadeVdx、Cisco、Juniper いずれかのオブジェクトを返す
+    return getattr(cm_agent, ''.join(m.group(1).lower().title().split()))(ipaddr)
   else:
     raise ValueError("%s: 機種を特定できませんでした." % (ipaddr))
 

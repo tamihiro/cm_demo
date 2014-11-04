@@ -45,7 +45,7 @@ import argparse
 import traceback
 from ipaddr import IPv4Network
 
-from pysnmp_sess_v2c import *
+from cm_sess.pysnmp_sess_v2c import *
 import cm_agent
 
 # ロギング設定

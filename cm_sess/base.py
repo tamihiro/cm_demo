@@ -29,5 +29,5 @@ class SessBase:
     return
 
   @abc.abstractmethod
-  def close(self):
+  def close(self, **kw):
     return

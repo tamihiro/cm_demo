@@ -11,6 +11,8 @@ Python2.7で動作確認済みです。
  - pexpect
  - junos-eznc
 
+update_snmp_acl.py を実行すると、機種の異なる5台の機器に順次接続してアクセスリストを更新、保存します。
+
 ```
 $ python update_snmp_acl.py -h
 usage: update_snmp_acl.py [-h] [-i] [-d]
@@ -18,5 +20,16 @@ usage: update_snmp_acl.py [-h] [-i] [-d]
 optional arguments:
   -h, --help         show this help message and exit
   -i, --interactive  show confirmation prompt (default: False)
+  -d, --dump-telnet  copy telnet screen to a file (default: False)
+```
+
+update_snmp_acl_thread.py は同じ処理をマルチスレッドで実行します。
+
+```
+$ python update_snmp_acl_thread.py -h
+usage: update_snmp_acl_thread.py [-h] [-d]
+
+optional arguments:
+  -h, --help         show this help message and exit
   -d, --dump-telnet  copy telnet screen to a file (default: False)
 ```

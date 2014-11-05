@@ -45,7 +45,7 @@ class NetconfJuniperSess(SessBase):
       self.closed = False
       self.write_log(self.logger, 'info', "%s (%s): 接続しました." % (self.server.ipaddr, self.server.model, ))
     else:
-      raise RuntimeError("%s: %s: 接続できませんでした." % (self.__class__.__name__, self.server.ipaddr))
+      raise RuntimeError("%s: %s: unable to connect." % (self.__class__.__name__, self.server.ipaddr))
 
   def get_snmp_acl(self, **kw):
     """ SNMPアクセスリストを取得
@@ -92,6 +92,7 @@ class NetconfJuniperSess(SessBase):
                      ])), 
             ])
     # 新しいACLを機器にロードする
+    self.cu.lock()
     self.cu.load(template_path=template_path, template_vars=template_vars)
     return self.get_snmp_acl(set_last_acl=False)
 
@@ -114,6 +115,7 @@ class NetconfJuniperSess(SessBase):
         return
     # コミット
     self.cu.commit()
+    self.cu.unlock()
     self.write_log(self.logger, 'debug', "%s: コミットしました." % (self.server.ipaddr, ))    
 
   def close(self, error_msg=None):

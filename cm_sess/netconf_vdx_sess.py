@@ -134,7 +134,7 @@ class NetconfVdxSess(SessBase):
       self.closed = False
       self.write_log(self.logger, 'info', "%s (%s): 接続しました." % (self.server.ipaddr, self.server.model, ))
     else:
-      raise RuntimeError("%s: %s: 接続できませんでした." % (self.__class__.__name__, self.server.ipaddr))
+      raise RuntimeError("%s: %s: unable to connect." % (self.__class__.__name__, self.server.ipaddr))
 
   def get_snmp_acl(self, **kw):
     """ SNMPアクセスリストを取得(VDXでは管理インターフェイスのACLにしてます)

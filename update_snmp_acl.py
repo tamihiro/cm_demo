@@ -66,11 +66,15 @@ logger.addHandler(clh)
 # パスワードのハッシュ: 標準入力から取得する文字列のハッシュと比較する
 pass_login_hash = 'bcc45276a1820fb16af9d8f3f2a5659b'
 pass_enable_hash = 'f3c777d6a93d6a22f8e3b41e67647d09'
+snmp_comm_hash = '58bff4b84f5e0f61ae1688c8f7a6bf84'
 
-def get_passwords():
+pass_login, pass_enable, snmp_comm = None, None, None
+
+def ger_secrets():
   """標準入力から取得するパスワードをチェック
   """
-  #return 'iw2014s4', 'IW2014S4'
+  global pass_login, pass_enable, snmp_comm
+
   def check_password(prompt, hash):
     pass_plain = getpass.getpass(prompt=prompt).strip()
     m = hashlib.md5()
@@ -78,21 +82,26 @@ def get_passwords():
     return m.hexdigest() == hash and pass_plain or None
 
   while True:
+    # 'iw2014s4'
     pass_login = check_password('ログインパスワードを入力:', pass_login_hash)
     if pass_login: break
     print 'no match!'
   while True:
+    # 'IW2014S4'
     pass_enable = check_password('イネーブルパスワードを入力:', pass_enable_hash)
     if pass_enable: break
     print 'no match!'
-
-  return pass_login, pass_enable
+  while True:
+    # 'comm-ro'
+    snmp_comm = check_password('SNMPコミュニティを入力:', snmp_comm_hash)
+    if snmp_comm: break
+    print 'no match!'
 
 
 def get_agent(ipaddr):
   """ipaddrからSNMPで取得するsysDescrを使って機種を判別
   """
-  m = re.search('(arista|brocade\s+(netiron|vdx)|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
+  m = re.search('(arista|brocade\s+(netiron|vdx)|cisco|juniper)', snmpget_sysdescr(ipaddr, snmp_comm), re.I)
   if m:
     # Arista、BrocadeNetiron、BrocadeVdx、Cisco、Juniper いずれかのオブジェクトを返す
     return getattr(cm_agent, ''.join(m.group(1).lower().title().split()))(ipaddr)
@@ -100,7 +109,7 @@ def get_agent(ipaddr):
     raise ValueError("%s: 機種を特定できませんでした." % (ipaddr))
 
 
-def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt, dump_telnet):
+def run_sess(ipaddr, logger, new_acl, prompt, dump_telnet):
   """管理対象機器のipaddrにアクセスして設定を更新する
   """
   try:
@@ -159,14 +168,14 @@ def main():
 
   try:
     # パスワード情報を取得
-    pass_login, pass_enable = get_passwords()
+    ger_secrets()
     # SNMPアクセスを許可するネットワークのIPアドレスをIPv4Networkオブジェクトに変換
     new_acl = map(IPv4Network, snmp_mgr_networks)  
 
     logger.info("開始します.")
     for ipaddr in agent_ipaddrs:
       # 機器ごとに接続して設定を変更
-      run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, prompt, dump_telnet)
+      run_sess(ipaddr, logger, new_acl, prompt, dump_telnet)
 
   except KeyboardInterrupt:
     print ""

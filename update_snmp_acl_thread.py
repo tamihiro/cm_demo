@@ -62,13 +62,18 @@ logger.addHandler(clh)
 # パスワードのハッシュ: 標準入力から取得する文字列のハッシュと比較する
 pass_login_hash = 'bcc45276a1820fb16af9d8f3f2a5659b'
 pass_enable_hash = 'f3c777d6a93d6a22f8e3b41e67647d09'
+snmp_comm_hash = '58bff4b84f5e0f61ae1688c8f7a6bf84'
+
+pass_login, pass_enable, snmp_comm = None, None, None
 
 # スレッド数
 thread_num = 5
 
-def get_passwords():
+def ger_secrets():
   """標準入力から取得するパスワードをチェック
   """
+  global pass_login, pass_enable, snmp_comm
+
   def check_password(prompt, hash):
     pass_plain = getpass.getpass(prompt=prompt).strip()
     m = hashlib.md5()
@@ -76,21 +81,26 @@ def get_passwords():
     return m.hexdigest() == hash and pass_plain or None
 
   while True:
+    # 'iw2014s4'
     pass_login = check_password('ログインパスワードを入力:', pass_login_hash)
     if pass_login: break
     print 'no match!'
   while True:
+    # 'IW2014S4'
     pass_enable = check_password('イネーブルパスワードを入力:', pass_enable_hash)
     if pass_enable: break
     print 'no match!'
-
-  return pass_login, pass_enable
+  while True:
+    # 'comm-ro'
+    snmp_comm = check_password('SNMPコミュニティを入力:', snmp_comm_hash)
+    if snmp_comm: break
+    print 'no match!'
 
 
 def get_agent(ipaddr):
   """ipaddrからSNMPで取得するsysDescrを使って機種を判別
   """
-  m = re.search('(arista|brocade\s+(netiron|vdx)|cisco|juniper)', snmpget_sysdescr(ipaddr), re.I)
+  m = re.search('(arista|brocade\s+(netiron|vdx)|cisco|juniper)', snmpget_sysdescr(ipaddr, snmp_comm), re.I)
   if m:
     # Arista、BrocadeNetiron、BrocadeVdx、Cisco、Juniper いずれかのオブジェクトを返す
     return getattr(cm_agent, ''.join(m.group(1).lower().title().split()))(ipaddr)
@@ -102,24 +112,22 @@ class RunSessThread(threading.Thread):
   """ Threadクラスのサブクラス
   run()メソッドで機器IPアドレスをキューから取得して設定変更
   """
-  def __init__(self, queue, l, e, a, d):
+  def __init__(self, queue, a, d):
     threading.Thread.__init__(self)
     self.queue = queue
-    self.l = l
-    self.e = e
     self.a = a
     self.d = d
 
   def run(self):
     while True:
-      # キューから取得
+      # キューから機器のIPアドレスを取得
       ipaddr = self.queue.get()
-      run_sess(ipaddr, logger, self.l, self.e, self.a, self.d)
+      run_sess(ipaddr, logger, self.a, self.d)
       # キューに完了通知
       self.queue.task_done()
 
 
-def run_sess(ipaddr, logger, pass_login, pass_enable, new_acl, dump_telnet):
+def run_sess(ipaddr, logger, new_acl, dump_telnet):
   """管理対象機器のipaddrにアクセスして設定を更新する
   """
   try:
@@ -175,7 +183,7 @@ def main():
 
   try:
     # パスワード情報を取得
-    pass_login, pass_enable = get_passwords()
+    ger_secrets()
   except KeyboardInterrupt:
     print ""
     logger.warn("処理が中断されました.")
@@ -190,7 +198,7 @@ def main():
   queue = Queue.Queue()
   for i in range(thread_num):
     # スレッド生成
-    t = RunSessThread(queue, pass_login, pass_enable, new_acl, dump_telnet)
+    t = RunSessThread(queue, new_acl, dump_telnet)
     t.setDaemon(True)
     t.start()
 

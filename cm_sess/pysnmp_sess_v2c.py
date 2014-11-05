@@ -14,10 +14,10 @@ class PysnmpSessV2cError(Exception):
 
 class PysnmpSessV2c(object):
   def __init__(self, 
+      community,
       port=161, 
       timeout=1, 
-      retries=3, 
-      community='sakura-open'):
+      retries=3,): 
     self.port = port
     self.retries = retries
     self.timeout = timeout
@@ -95,14 +95,14 @@ class PysnmpSessV2c(object):
             d[name] = val
         return d
               
-def snmpget_sysdescr(router):
-  sess = PysnmpSessV2c()
+def snmpget_sysdescr(router, community):
+  sess = PysnmpSessV2c(community=community, )
   oid = '1.3.6.1.2.1.1.1.0'
   res = sess.sync_get(router, oid)
   return str(res.values()[0])
 
-def snmpget_counters(router, *oids):
-  sess = PysnmpSessV2c()
+def snmpget_counters(router, community, *oids):
+  sess = PysnmpSessV2c(community=community, )
   sess.retries = 1
   d = sess.sync_get(router, *oids)
   return dict(zip(map(str, d.keys()), map(int, d.values())))

@@ -102,6 +102,7 @@ class EapiHttpSess(SessBase):
           if not s: continue
           acl.append(s)
         acl.sort()
+      if set_last_acl: self.last_acl = acl
       return acl      
 
   def update_snmp_acl(self, acl_diff_dict, **kw):
@@ -135,8 +136,8 @@ class EapiHttpSess(SessBase):
         self.write_log(self.logger, 'debug', data['result'])
         raise RuntimeError("%s: ACLの更新リクエストを実行できませんでした." % (self.server.ipaddr, ))
       
-      # 更新後のACLを取得して返す
-      return self.get_snmp_acl(set_last_acl=False)
+    # 更新後のACLを取得して返す
+    return self.get_snmp_acl(set_last_acl=False)
 
   def save_exit_config(self, **kw):
     """ 保存
@@ -155,7 +156,6 @@ class EapiHttpSess(SessBase):
 
       # APIからのレスポンスを処理
       with closing(urllib2.urlopen(self.get_api_req(cmds), timeout=self.rpc_timeout)) as res:
-        res = self.get_api_res(cmds)
         self.check_http_error(res, "ACLの更新リクエストでHTTPエラーが発生しました.")
 
     # write memory をリクエスト

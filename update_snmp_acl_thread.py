@@ -69,30 +69,28 @@ pass_login, pass_enable, snmp_comm = None, None, None
 # スレッド数
 thread_num = 5
 
-def ger_secrets():
+def get_secrets():
   """標準入力から取得するパスワードをチェック
   """
   global pass_login, pass_enable, snmp_comm
 
-  def check_password(prompt, hash):
+  def check_secret(prompt, hash):
     pass_plain = getpass.getpass(prompt=prompt).strip()
-    m = hashlib.md5()
-    m.update(pass_plain)
-    return m.hexdigest() == hash and pass_plain or None
+    return hashlib.md5(pass_plain).hexdigest() == hash and pass_plain or None
 
   while True:
     # 'iw2014s4'
-    pass_login = check_password('ログインパスワードを入力:', pass_login_hash)
+    pass_login = check_secret('ログインパスワードを入力:', pass_login_hash)
     if pass_login: break
     print 'no match!'
   while True:
     # 'IW2014S4'
-    pass_enable = check_password('イネーブルパスワードを入力:', pass_enable_hash)
+    pass_enable = check_secret('イネーブルパスワードを入力:', pass_enable_hash)
     if pass_enable: break
     print 'no match!'
   while True:
     # 'comm-ro'
-    snmp_comm = check_password('SNMPコミュニティを入力:', snmp_comm_hash)
+    snmp_comm = check_secret('SNMPコミュニティを入力:', snmp_comm_hash)
     if snmp_comm: break
     print 'no match!'
 
@@ -183,7 +181,7 @@ def main():
 
   try:
     # パスワード情報を取得
-    ger_secrets()
+    get_secrets()
   except KeyboardInterrupt:
     print ""
     logger.warn("処理が中断されました.")

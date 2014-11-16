@@ -173,9 +173,10 @@ class TelnetSess(SessBase):
       self.sendline(self.config_acl_cmd)
       self.child.expect(self.config_prompt)      
 
-    for which, n in [ (which, n) for which in acl_dict for n in acl_dict[which]]:
-      self.sendline(getattr(self, which + '_acl_cmd')(n))
-      self.child.expect(self.config_prompt)
+    for which in [ k for k in ('del', 'add', ) if k in acl_dict]:
+      for n in acl_dict[which]:
+        self.sendline(getattr(self, which + '_acl_cmd')(n))
+        self.child.expect(self.config_prompt)
 
     return self.get_snmp_acl(config_mode=True)
 

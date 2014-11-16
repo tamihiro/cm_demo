@@ -171,7 +171,7 @@ class NetconfVdxSess(SessBase):
                                e.message, ), )
 
     if set_last_acl: self.last_acl_d = acl_d
-    return acl_d.keys()
+    return sorted(acl_d.keys())
 
   def update_snmp_acl(self, acl_diff_dict, **kw):
     """ SNMPアクセスリストを更新

@@ -135,10 +135,11 @@ def run_sess(ipaddr, logger, new_acl, prompt, dump_telnet):
       # 更新キャンセルの場合
       if not updated_acl and sess.closed: return
       if set(new_acl) != set(updated_acl):
+        # 更新結果がリクエストと一致しなかった場合は保存しない
         logger.error("%s: ACL変更を正常に完了できませんでした: %s" % (ipaddr, ", ".join([n.with_prefixlen for n in updated_acl])))
       else:
-        logger.info("%s: 変更後のACL: %s" % (ipaddr, ", ".join([n.with_prefixlen for n in updated_acl])))
         # 更新された設定を保存
+        logger.info("%s: 変更後のACL: %s" % (ipaddr, ", ".join([n.with_prefixlen for n in updated_acl])))
         sess.save_exit_config(prompt=prompt, acl_diff_dict=acl_diff_dict, )
 
     # 新しいACLと一致していた場合

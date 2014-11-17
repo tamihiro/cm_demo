@@ -229,10 +229,9 @@ class TelnetSess(SessBase):
     """ セッション終了
     """
     if self.closed: return
-    self.sendline("exit")
-    i = self.child.expect([self.unpriv_prompt, pexpect.EOF])  
-    if i == 0:
+    for n in range(4):
       self.sendline("exit")
-      self.child.expect(pexpect.EOF)
+      i = self.child.expect([self.config_prompt, self.priv_prompt, self.unpriv_prompt, pexpect.EOF])  
+      if i == 3: break
     self.write_log(self.logger, 'debug', "%s: セッションを閉じました." % (self.device.ipaddr, ))
     self.closed = True

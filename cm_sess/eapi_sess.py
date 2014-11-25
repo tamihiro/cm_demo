@@ -43,21 +43,18 @@ class EapiHttpSess(SessBase):
   def check_http_error(self, http_res, err_log):
     """ urlopen()の戻値でエラーをチェック
     """ 
-    if http_res.msg != 'OK':
-      raise RuntimeError("%s: %s: %s (%d)" % (
-            self.__class__.__name__, self.server.ipaddr, err_log, http_res.getcode(), 
-            ))
-    return
+    if http_res.msg == 'OK': return
+    raise RuntimeError("%s: %s: %s (%d)" % (
+          self.__class__.__name__, self.server.ipaddr, err_log, http_res.getcode(), 
+          ))
 
-  def check_api_error(self, http_data, err_log):
+  def check_api_error(self, error, err_log):
     """ APIからの戻値でエラーをチェック
     """
-    error = http_data.get('error')
     if not error: return
     raise RuntimeError("%s: %s: %s (message: %s) (code: %s)" % (
             self.__class__.__name__, self.server.ipaddr, err_log, error.get('message'), error.get('code'), 
             ))
-    return
 
   def open(self):
     """ HTTPはステートレスなので擬似的に実装
@@ -101,7 +98,7 @@ class EapiHttpSess(SessBase):
     with closing(urllib2.urlopen(self.get_api_req(cmds), timeout=self.rpc_timeout)) as res:
       self.check_http_error(res, "get_snmp_acl() returned an HTTP error.")
       data = json.loads(res.read())
-      self.check_api_error(data, "get_snmp_acl() returned an API error.")
+      self.check_api_error(data.get('error'), "get_snmp_acl() returned an API error.")
 
       # warnings: "Model 'AclList' is not a public model and is subject to change!"
       # (将来データ構造が変更される可能性あり)
@@ -140,7 +137,7 @@ class EapiHttpSess(SessBase):
     with closing(urllib2.urlopen(self.get_api_req(cmds), timeout=self.rpc_timeout)) as res:
       self.check_http_error(res, "update_snmp_acl() returned an HTTP error.")
       data = json.loads(res.read())
-      self.check_api_error(data, "update_snmp_acl() returned an API error.")
+      self.check_api_error(data.get('error'), "update_snmp_acl() returned an API error.")
       assert data['id'] == self.req_id
 
       if len(data['result']) != len(cmds) or filter(len, data['result']):

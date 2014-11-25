@@ -44,8 +44,18 @@ class EapiHttpSess(SessBase):
     """ urlopen()の戻値でエラーをチェック
     """ 
     if http_res.msg != 'OK':
-      raise RuntimeError("%s: %s: %s(%d)" % (
+      raise RuntimeError("%s: %s: %s (%d)" % (
             self.__class__.__name__, self.server.ipaddr, err_log, http_res.getcode(), 
+            ))
+    return
+
+  def check_api_error(self, http_data, err_log):
+    """ APIからの戻値でエラーをチェック
+    """
+    error = http_data.get('error')
+    if not error: return
+    raise RuntimeError("%s: %s: %s (message: %s) (code: %s)" % (
+            self.__class__.__name__, self.server.ipaddr, err_log, error.get('message'), error.get('code'), 
             ))
     return
 
@@ -82,15 +92,16 @@ class EapiHttpSess(SessBase):
           return IPv4Network("%s/%s" % (e['source']['ip'], str(IPv4Address(e['source']['mask'])), ))
         except:
           pass
-      raise RuntimeError("%s: ACLエントリを判別できません.: %s" % (self.server.ipaddr, e, ))
+      raise RuntimeError("%s: ACL entry in unknown format: %s" % (self.server.ipaddr, e, ))
 
     set_last_acl = kw.get('set_last_acl', True)
     acl = list()
     cmds = ['enable', 'show ip access-lists ' + self.acl_name, ]
     # APIからのレスポンスを処理
     with closing(urllib2.urlopen(self.get_api_req(cmds), timeout=self.rpc_timeout)) as res:
-      self.check_http_error(res, "ACLの取得リクエストでHTTPエラーが発生しました.")
+      self.check_http_error(res, "get_snmp_acl() returned an HTTP error.")
       data = json.loads(res.read())
+      self.check_api_error(data, "get_snmp_acl() returned an API error.")
 
       # warnings: "Model 'AclList' is not a public model and is subject to change!"
       # (将来データ構造が変更される可能性あり)
@@ -127,14 +138,15 @@ class EapiHttpSess(SessBase):
 
     # APIからのレスポンスを処理
     with closing(urllib2.urlopen(self.get_api_req(cmds), timeout=self.rpc_timeout)) as res:
-      self.check_http_error(res, "ACLの更新リクエストでHTTPエラーが発生しました.")
+      self.check_http_error(res, "update_snmp_acl() returned an HTTP error.")
       data = json.loads(res.read())
+      self.check_api_error(data, "update_snmp_acl() returned an API error.")
       assert data['id'] == self.req_id
 
       if len(data['result']) != len(cmds) or filter(len, data['result']):
         # 正常に更新されている場合は、コマンドリスト内のコマンドと同数の空の辞書になっている
         self.write_log(self.logger, 'debug', data['result'])
-        raise RuntimeError("%s: ACLの更新リクエストを実行できませんでした." % (self.server.ipaddr, ))
+        raise RuntimeError("%s: failed to update ACL." % (self.server.ipaddr, ))
       
     # 更新後のACLを取得して返す
     return self.get_snmp_acl(set_last_acl=False)
